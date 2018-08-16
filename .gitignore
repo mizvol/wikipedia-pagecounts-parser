@@ -6,3 +6,5 @@ WikiPageCountsParser/\.idea/
 WikiPageCountsParser/project/
 
 WikiPageCountsParser/target/
+
+WikiPageCountsParser/src/main/resources/
