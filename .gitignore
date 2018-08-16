@@ -1,2 +1,8 @@
 *.class
 *.log
+
+WikiPageCountsParser/\.idea/
+
+WikiPageCountsParser/project/
+
+WikiPageCountsParser/target/
