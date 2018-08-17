@@ -4,7 +4,7 @@
 
 import java.util.Calendar
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.{collect_list, typedLit}
 import ch.epfl.lts2.Utils._
 import ch.epfl.lts2.Globals._
@@ -30,7 +30,7 @@ object WikiPageCountsParser extends App {
 
   val YEAR = "2018-"
   val MONTH = "01-"
-  val DAYS = 14
+  val DAYS = 31
   val PROJECT = "en.z" // Wikipedia
 
   val sc = spark.sparkContext
@@ -40,11 +40,13 @@ object WikiPageCountsParser extends App {
   // Initial record format
   case class Record(project: String, page: String, dailyTotal: Int, hourlyCounts: String)
 
-  // Resulting record format with dates as a column
+  // Resulting record format. Added a column for the dates
   case class RecordDF(project: String, page: String, dailyTotal: Int, hourlyCounts: String, day: String)
 
   var df = spark.emptyDataset[RecordDF].toDF()
 
+  // Read files in the resources folder one by one. Specify YEAR, MONTH, and DAYS (number of days in the month)
+  // according to the file names.
   for (i <- 1 to DAYS) {
     var day = i.toString
     if (i <= 9) day = "0" + i.toString
@@ -66,7 +68,6 @@ object WikiPageCountsParser extends App {
 
   val df1 = df.groupBy($"page").agg(collect_list($"dailyTotal"), collect_list($"day"))
 
-//  df.show()
   df1.show()
   println(df1.count())
 
