@@ -2,7 +2,8 @@
   * Created by volodymyrmiz on 16/08/18.
   */
 
-import org.apache.spark.sql.{SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions.typedLit
 import ch.epfl.lts2.Utils._
 import ch.epfl.lts2.Globals._
 
@@ -23,14 +24,24 @@ object WikiPageCountsParser extends App {
 
   val YEAR = "2018-"
   val MONTH = "01-"
-  val DAY = "03"
+  val DAYS = 5
   val PROJECT = "en.z" // Wikipedia
 
   val sc = spark.sparkContext
 
+  // Initial record format
   case class Record(project: String, page: String, dailyTotal: Int, hourlyCounts: String)
 
-    var t = sc.textFile(PATH_RESOURCES + "pagecounts-" + YEAR + MONTH + "*" + ".bz2")
+  // Resulting record format with dates as a column
+  case class RecordDF(project: String, page: String, dailyTotal: Int, hourlyCounts: String, day: String)
+
+  var df = spark.emptyDataset[RecordDF].toDF()
+
+  for (i <- 1 to DAYS) {
+    var day = i.toString
+    if (i <= 9) day = "0" + i.toString
+
+    var t = sc.textFile(PATH_RESOURCES + "pagecounts-" + YEAR + MONTH + day + ".bz2")
       .filter(line => !line.contains("#"))
       .map(_.split(" "))
       .map {
@@ -39,7 +50,11 @@ object WikiPageCountsParser extends App {
       .toDF()
 //      .filter($"dailyTotal" > 100)
       .filter($"project" === PROJECT)
+    t = t.withColumn("day", typedLit[String](YEAR + MONTH + day))
+    df = df.union(t)
+  }
 
-  println(t.count())
+  df = df.drop($"project")
 
+  df.show()
 }
