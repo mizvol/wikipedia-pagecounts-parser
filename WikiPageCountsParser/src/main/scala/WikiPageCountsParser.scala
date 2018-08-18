@@ -5,10 +5,13 @@
 import java.util.Calendar
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.{collect_list, typedLit}
+import org.apache.spark.sql.functions.{collect_list, typedLit, udf}
+import scala.reflect.runtime.universe.{TypeTag}
 import ch.epfl.lts2.Utils._
 import ch.epfl.lts2.Globals._
 import org.slf4j.{Logger, LoggerFactory}
+
+import scala.collection.mutable
 
 
 object WikiPageCountsParser extends App {
@@ -66,10 +69,32 @@ object WikiPageCountsParser extends App {
 
   df = df.drop($"project")
 
-  val df1 = df.groupBy($"page").agg(collect_list($"dailyTotal"), collect_list($"day"))
+  /***
+    * User-Defined Function (UDF)
+    * Takes two columns with types WrappedArray[TYPE1], WrappedArray[TYPE2]
+    * and returns a Map corresponding to a zip of two arrays.
+    * @tparam S type of items in WrappedArray in the first column
+    * @tparam T type of items in WrappedArray in the second column
+    * @return Map corresponding to a zip of two arrays Map(SECOND[i] -> FIRST[i]) with values of the second as keys.
+    */
+  private def toMapUDF[S: TypeTag, T: TypeTag] =
+    udf((x: mutable.WrappedArray[S], y: mutable.WrappedArray[T]) => {
+      val zipped = y zip x
+      zipped.toMap
+    })
 
-  df1.show()
-  println(df1.count())
+  // collect daily visits per page
+ var dfTS = df.groupBy($"page")
+    .agg(collect_list($"dailyTotal"), collect_list($"day")) // get lists of visits and days for each page
+    .toDF(Seq("page", "dailyTotal", "day"): _*) // rename columns
+
+  // convert lists to time-series
+  dfTS = dfTS
+    .withColumn("ts", toMapUDF[Int, String].apply(dfTS("dailyTotal"), dfTS("day"))) // transform separate lists of dates and dailyCounts into a Map(day->visits)
+
+  // save DataFrame with time-series
+  dfTS.select("page", "ts")
+    .write.save("jan18.parquet")
 
   log.info("End time: " + Calendar.getInstance().getTime())
 }
