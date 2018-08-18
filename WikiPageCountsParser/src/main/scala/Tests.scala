@@ -5,8 +5,10 @@
 import java.util.Calendar
 
 import ch.epfl.lts2.Utils.suppressLogs
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions.array
+
+import scala.collection.mutable
 
 object Tests extends App {
 
@@ -39,5 +41,25 @@ object Tests extends App {
 
   println(Calendar.getInstance().getTime())
 
+val df = spark.read.load("jan18.parquet")
+  df.show()
+  println(df.count())
+
+//    import org.apache.spark.sql.functions.udf
+//    import scala.reflect.runtime.universe.{TypeTag}
+//
+//    def toMapUDF[S: TypeTag, T: TypeTag] =
+//      udf((x: mutable.WrappedArray[S], y: mutable.WrappedArray[T]) => {
+//        val zipped = y zip x
+//        zipped.toMap
+//      })
+//
+//  val dfTS = df.withColumn(
+//    "tuple_col", toMapUDF[Int, String].apply(df("dailyTotal"), df("day"))
+//  )
+//
+//  dfTS.show()
+//
+//  dfTS.take(1).foreach(println)
 
 }
