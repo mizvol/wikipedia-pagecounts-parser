@@ -66,45 +66,46 @@ object Tests extends App {
   import scala.io.Source._
   import org.json4s.jackson.JsonMethods.parse
 
-  // define nested types of a Wikipedia API response
-  type linksType = Map[String, Any]
-  type pagesIDType = Map[String, linksType]
-  type pagesType = Map[String, pagesIDType]
-  type responseType = Map[String, pagesType]
-
   val TITLE1 = ".net"
   val TITLE2 = "Albert+Einstein"
 
-  val URL = "https://en.wikipedia.org/w/api.php?action=query&titles=" + TITLE1 + "&prop=links&pllimit=500&format=json"
+  def getLinks(title: String): List[String] = {
+    val URL = "https://en.wikipedia.org/w/api.php?action=query&titles=" + title + "&prop=links&pllimit=500&format=json"
 
-//  val singleURL = "https://en.wikipedia.org/w/api.php?action=query&titles=.net&prop=links&pllimit=500&format=json"
-//  val nestedURL = "https://en.wikipedia.org/w/api.php?action=query&titles=Albert+Einstein&prop=links&pllimit=500&format=json"
-//
-  var responseJSON = parse(fromURL(URL).mkString)
-    .values
-    .asInstanceOf[responseType]
+    // define nested types of a Wikipedia API response
+    type linksType = Map[String, Any]
+    type pagesIDType = Map[String, linksType]
+    type pagesType = Map[String, pagesIDType]
+    type responseType = Map[String, pagesType]
 
-  val pageID = responseJSON("query")("pages").keys.head.toString
-
-  var keys: Set[String] = responseJSON.keys.toSet
-
-  import scala.collection.mutable.ListBuffer
-
-  var titles = new ListBuffer[String]()
-
-  while(keys.contains("continue")){
-    responseJSON("query")("pages")(pageID)("links").asInstanceOf[List[Map[String, Any]]].filter(v => v("ns") == 0).map(_("title"))
-      .map(v => titles += v.toString)
-
-    responseJSON = parse(fromURL(URL + "&plcontinue=" + responseJSON("continue")("plcontinue")).mkString)
+    var responseJSON = parse(fromURL(URL).mkString)
       .values
       .asInstanceOf[responseType]
 
-    keys = responseJSON.keys.toSet
+    val pageID = responseJSON("query")("pages").keys.head.toString
+
+    var keys: Set[String] = responseJSON.keys.toSet
+
+    import scala.collection.mutable.ListBuffer
+
+    var titles = new ListBuffer[String]()
+
+    while(keys.contains("continue")){
+      responseJSON("query")("pages")(pageID)("links").asInstanceOf[List[Map[String, Any]]].filter(v => v("ns") == 0).map(_("title"))
+        .map(v => titles += v.toString)
+
+      responseJSON = parse(fromURL(URL + "&plcontinue=" + responseJSON("continue")("plcontinue")).mkString)
+        .values
+        .asInstanceOf[responseType]
+
+      keys = responseJSON.keys.toSet
+    }
+
+    responseJSON("query")("pages")(pageID)("links").asInstanceOf[List[Map[String, Any]]].filter(v => v("ns") == 0).map(_("title"))
+      .map(v => titles += v.toString)
+
+    titles.toList
   }
 
-  responseJSON("query")("pages")(pageID)("links").asInstanceOf[List[Map[String, Any]]].filter(v => v("ns") == 0).map(_("title"))
-    .map(v => titles += v.toString)
-
-  println(titles)
+  println(getLinks(TITLE2))
 }
