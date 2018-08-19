@@ -9,6 +9,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions.array
 
 import scala.collection.mutable
+import scala.util.parsing.json.JSON
 
 object Tests extends App {
 
@@ -39,11 +40,11 @@ object Tests extends App {
 //
 //  df.show()
 
-  println(Calendar.getInstance().getTime())
-
-val df = spark.read.load("jan18.parquet")
-  df.show()
-  println(df.count())
+//  println(Calendar.getInstance().getTime())
+//
+//val df = spark.read.load("jan18.parquet")
+//  df.show()
+//  println(df.count())
 
 //    import org.apache.spark.sql.functions.udf
 //    import scala.reflect.runtime.universe.{TypeTag}
@@ -61,5 +62,26 @@ val df = spark.read.load("jan18.parquet")
 //  dfTS.show()
 //
 //  dfTS.take(1).foreach(println)
+
+  import scala.io.Source._
+  import org.json4s.jackson.JsonMethods.parse
+
+  val responseJSON = fromURL("https://en.wikipedia.org/w/api.php?action=query&titles=.net&prop=links&pllimit=500&format=json").mkString
+  println(responseJSON)
+
+  type linksType = Map[String, Any]
+  type pagesIDType = Map[String, linksType]
+  type pagesType = Map[String, pagesIDType]
+  type queryType = Map[String, pagesType]
+
+  type continueFlagType = Map[String, Map[String, Any]]
+
+  val r = parse(responseJSON).values.asInstanceOf[queryType]
+
+  val pageID = r("query")("pages").keys.head.toString
+
+  val titles = r("query")("pages")(pageID)("links").asInstanceOf[List[Map[String, Any]]].filter(v => v("ns") == 0).map(_("title"))
+
+  println(titles)
 
 }
