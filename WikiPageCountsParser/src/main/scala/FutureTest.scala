@@ -82,7 +82,7 @@ object FutureTest extends App{
 
     var responseFuture = retry(get(URL))(as)
 
-    var r = Await.result(responseFuture, 100 minutes)
+    var r = Await.result(responseFuture, 1000 minutes)
 
     var responseJSON: responseType = parse(r)
       .values
@@ -105,7 +105,7 @@ object FutureTest extends App{
           //        println(responseJSON)
 
           responseFuture = retry(get(URL + "&plcontinue=" + responseJSON("continue")("plcontinue")))(as)
-          r = Await.result(responseFuture, 100 minutes)
+          r = Await.result(responseFuture, 1000 minutes)
           responseJSON = parse(r)
             .values
             .asInstanceOf[responseType]
