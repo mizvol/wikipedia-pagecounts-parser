@@ -1,4 +1,3 @@
-import akka.actor.ActorSystem
 import ch.epfl.lts2.Utils.suppressLogs
 import com.twitter.chill.Base64.InputStream
 import org.apache.spark.sql.SparkSession
@@ -6,9 +5,8 @@ import org.apache.spark.sql.SparkSession
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Random
-//import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext.Implicits.global
 import org.json4s.jackson.JsonMethods.parse
-import dispatch._, Defaults._
 
 import scala.collection.mutable.ListBuffer
 
@@ -50,6 +48,7 @@ object FutureTest extends App{
 
   val URL = "https://en.wikipedia.org/w/api.php?action=query&titles=" + TITLE1 + "&prop=links&pllimit=500&format=json"
 
+  // retry feature if it fails
   def retry(future: Future[String]): Future[String] = {
     future.recoverWith {
       case e: java.io.IOException =>
@@ -114,21 +113,21 @@ object FutureTest extends App{
     titles.toList
   }
 
-//  println(getLinks(TITLE2))
-
-  val df = spark.read.load("jan18.parquet")
-  df.show()
-  println(df.count())
-
-  import org.apache.spark.sql.functions.udf
-
-    def getLinksUDF =
-      udf((x: String) => {
-        getLinks(x)
-      })
-
-    val dfLinks = df.withColumn("links", getLinksUDF.apply(df("page")))
-
-    dfLinks
-      .write.save("jan18Links.parquet")
+  println(getLinks(TITLE2))
+//
+//  val df = spark.read.load("jan18.parquet")
+//  df.show()
+//  println(df.count())
+//
+//  import org.apache.spark.sql.functions.udf
+//
+//    def getLinksUDF =
+//      udf((x: String) => {
+//        getLinks(x)
+//      })
+//
+//    val dfLinks = df.withColumn("links", getLinksUDF.apply(df("page")))
+//
+//    dfLinks
+//      .write.save("jan18Links.parquet")
 }
