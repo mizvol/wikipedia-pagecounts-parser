@@ -48,16 +48,24 @@ object FutureTest extends App{
 
   val URL = "https://en.wikipedia.org/w/api.php?action=query&titles=" + TITLE1 + "&prop=links&pllimit=500&format=json"
 
+  import akka.actor.ActorSystem
+  import akka.pattern.Patterns.after
+  import scala.concurrent.duration._
+
   // retry feature if it fails
-  def retry(future: Future[String]): Future[String] = {
+  def retry(future: Future[String], factor: Float = 1.5f, init: Int = 100, cur: Int = 0)(implicit as: ActorSystem): Future[String] = {
     future.recoverWith {
       case e: java.io.IOException =>
-        println("retrying")
-        Thread.sleep(50000)
-        retry(future)
+        val next: Int =
+          if (cur == 0) init
+          else Math.ceil(cur * factor).toInt
+        println(s"retrying after ${next} ms")
+        after(next.milliseconds, as.scheduler, global, Future.successful(1)).flatMap { _ => retry(future)}
       case t: Throwable => throw t
     }
   }
+
+  val as = ActorSystem()
 
   def getLinks(title: String): List[String] = {
         println(title)
@@ -72,9 +80,9 @@ object FutureTest extends App{
     import scala.collection.mutable.ListBuffer
     var titles = new ListBuffer[String]()
 
-    var responseFuture = retry(get(URL))
+    var responseFuture = retry(get(URL))(as)
 
-    var r = Await.result(responseFuture, 250 seconds)
+    var r = Await.result(responseFuture, 30 seconds)
     var responseJSON: responseType = parse(r)
       .values
       .asInstanceOf[responseType]
@@ -95,8 +103,8 @@ object FutureTest extends App{
             .map(v => titles += v.toString)
           //        println(responseJSON)
 
-          responseFuture = retry(get(URL + "&plcontinue=" + responseJSON("continue")("plcontinue")))
-          r = Await.result(responseFuture, 250 seconds)
+          responseFuture = retry(get(URL + "&plcontinue=" + responseJSON("continue")("plcontinue")))(as)
+          r = Await.result(responseFuture, 30 seconds)
           responseJSON = parse(r)
             .values
             .asInstanceOf[responseType]
@@ -113,7 +121,7 @@ object FutureTest extends App{
     titles.toList
   }
 
-  println(getLinks(TITLE2))
+//  println(getLinks(TITLE2))
 //
 //  val df = spark.read.load("jan18.parquet")
 //  df.show()
