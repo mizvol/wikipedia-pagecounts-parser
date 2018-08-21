@@ -4,7 +4,7 @@ import org.apache.spark.sql.SparkSession
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.util.Random
+import scala.util.{Random, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.json4s.jackson.JsonMethods.parse
 
@@ -53,7 +53,7 @@ object FutureTest extends App{
   import scala.concurrent.duration._
 
   // retry feature if it fails
-  def retry(future: Future[String], factor: Float = 1.5f, init: Int = 100, cur: Int = 0)(implicit as: ActorSystem): Future[String] = {
+  def retry(future: Future[String], factor: Float = 1.5f, init: Int = 1000, cur: Int = 0)(implicit as: ActorSystem): Future[String] = {
     future.recoverWith {
       case e: java.io.IOException =>
         val next: Int =
@@ -82,7 +82,8 @@ object FutureTest extends App{
 
     var responseFuture = retry(get(URL))(as)
 
-    var r = Await.result(responseFuture, 30 seconds)
+    var r = Await.result(responseFuture, 100 minutes)
+
     var responseJSON: responseType = parse(r)
       .values
       .asInstanceOf[responseType]
@@ -104,7 +105,7 @@ object FutureTest extends App{
           //        println(responseJSON)
 
           responseFuture = retry(get(URL + "&plcontinue=" + responseJSON("continue")("plcontinue")))(as)
-          r = Await.result(responseFuture, 30 seconds)
+          r = Await.result(responseFuture, 100 minutes)
           responseJSON = parse(r)
             .values
             .asInstanceOf[responseType]
@@ -122,20 +123,20 @@ object FutureTest extends App{
   }
 
 //  println(getLinks(TITLE2))
-//
-//  val df = spark.read.load("jan18.parquet")
-//  df.show()
-//  println(df.count())
-//
-//  import org.apache.spark.sql.functions.udf
-//
-//    def getLinksUDF =
-//      udf((x: String) => {
-//        getLinks(x)
-//      })
-//
-//    val dfLinks = df.withColumn("links", getLinksUDF.apply(df("page")))
-//
-//    dfLinks
-//      .write.save("jan18Links.parquet")
+
+  val df = spark.read.load("jan18.parquet")
+  df.show()
+  println(df.count())
+
+  import org.apache.spark.sql.functions.udf
+
+    def getLinksUDF =
+      udf((x: String) => {
+        getLinks(x)
+      })
+
+    val dfLinks = df.withColumn("links", getLinksUDF.apply(df("page")))
+
+    dfLinks
+      .write.save("jan18Links.parquet")
 }
