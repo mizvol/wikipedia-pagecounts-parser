@@ -10,9 +10,6 @@ import org.json4s.jackson.JsonMethods.parse
 
 import scala.collection.mutable.ListBuffer
 
-
-
-
 /**
   * Created by volodymyrmiz on 21/08/18.
   */
