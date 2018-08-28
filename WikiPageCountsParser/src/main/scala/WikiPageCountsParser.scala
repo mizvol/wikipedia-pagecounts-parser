@@ -37,6 +37,7 @@ object WikiPageCountsParser extends App {
   val MONTH = "07-"
   val DAYS = 31
   val PROJECT = "en.z" // Wikipedia
+  val DAILY_THRESHOLD = 100
 
   val sc = spark.sparkContext
 
@@ -63,7 +64,7 @@ object WikiPageCountsParser extends App {
         case Array(project, page, dailyTotal, hourlyCounts) => Record(project, page, dailyTotal.toInt, hourlyCounts)
       }
       .toDF()
-      .filter($"dailyTotal" > 100)
+      .filter($"dailyTotal" > DAILY_THRESHOLD)
       .filter($"project" === PROJECT)
     t = t.withColumn("day", typedLit[String](YEAR + MONTH + day))
     df = df.union(t)
