@@ -31,8 +31,10 @@ object WikiPageCountsParser extends App {
 
   val SQLContext = spark.sqlContext
 
+  // Choose files with page counts. Configure file names
+  val FOLDER = "jul18"
   val YEAR = "2018-"
-  val MONTH = "01-"
+  val MONTH = "07-"
   val DAYS = 31
   val PROJECT = "en.z" // Wikipedia
 
@@ -54,7 +56,7 @@ object WikiPageCountsParser extends App {
     var day = i.toString
     if (i <= 9) day = "0" + i.toString
 
-    var t = sc.textFile(PATH_RESOURCES + "pagecounts-" + YEAR + MONTH + day + ".bz2")
+    var t = sc.textFile(PATH_RESOURCES + FOLDER + "/pagecounts-" + YEAR + MONTH + day + ".bz2")
       .filter(line => !line.contains("#"))
       .map(_.split(" "))
       .map {
@@ -94,7 +96,7 @@ object WikiPageCountsParser extends App {
 
   // save DataFrame with time-series
   dfTS.select("page", "ts")
-    .write.save("jan18.parquet")
+    .write.save(PATH_RESOURCES + FOLDER + ".parquet")
 
   log.info("End time: " + Calendar.getInstance().getTime())
 }
