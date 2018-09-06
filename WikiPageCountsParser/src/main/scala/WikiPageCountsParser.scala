@@ -30,17 +30,21 @@ object WikiPageCountsParser extends App {
   import spark.implicits._
 
   val SQLContext = spark.sqlContext
-
-  // Choose files with page counts. Configure file names
-  val FOLDER = "jul18"
-  val YEAR = "2018-"
-  val MONTH = "07-"
-  val DAYS = 31
-  val PROJECT = "en.z" // Wikipedia
-  val DAILY_THRESHOLD = 100
-
   val sc = spark.sparkContext
 
+  // Choose files with page counts. Configure file names
+  val YEAR = "2018-"
+  val MONTH = "07-"
+  val DAYS = 31 // number of days in a parsed month
+
+  // Configure parser. Chose a Wikimedia project and threshold
+  val PROJECT = "en.z" // Wikipedia prject code
+  val DAILY_THRESHOLD = 100
+
+  // Configure output
+  val FOLDER = "jul18" // folder name for parsed output
+
+  // PARSE
   log.info("Start time: " + Calendar.getInstance().getTime())
 
   // Initial record format
